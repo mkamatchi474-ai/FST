@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Node.js HTTP Services - Ultra Premium Simulator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f172a, #1e293b, #0f172a);
+      min-height: 100vh;
+      color: #e2e8f0;
+      padding: 16px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      color: #f8fafc;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+
+    .browser-shell {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(12px);
+    }
+
+    .browser-top {
+      padding: 12px 14px;
+      background: rgba(30, 41, 59, 0.9);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot.red { background: #ef4444; }
+    .dot.yellow { background: #f59e0b; }
+    .dot.green { background: #22c55e; }
+
+    .url-bar {
+      flex: 1;
+      min-width: 180px;
+      background: #0f172a;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      color: #cbd5e1;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      padding: 18px;
+    }
+
+    .panel {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 20px;
+      padding: 18px;
+    }
+
+    .panel h2 {
+      font-size: 1.1rem;
+      margin-bottom: 14px;
+      color: #f8fafc;
+    }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    select, input, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: #0f172a;
+      color: #e2e8f0;
+      outline: none;
+      font-size: 0.95rem;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+      font-family: monospace;
+    }
+
+    .route-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .route-btn, .send-btn, .example-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.25s;
+      font-size: 0.95rem;
+    }
+
+    .route-btn {
+      background: #1d4ed8;
+      color: white;
+    }
+
+    .route-btn:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+    }
+
+    .send-btn {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      margin-top: 6px;
+    }
+
+    .send-btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.05);
+    }
+
+    .example-btn {
+      background: #334155;
+      color: #e2e8f0;
+    }
+
+    .example-btn:hover {
+      background: #475569;
+    }
+
+    .response-box {
+      display: grid;
+      gap: 14px;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .badge {
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .ok { background: rgba(34, 197, 94, 0.15); color: #86efac; }
+    .created { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+    .bad { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+    .warn { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
+
+    .code-block {
+      background: #020617;
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 16px;
+      padding: 16px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      font-family: monospace;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #7dd3fc;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .mini-card {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .mini-card h3 {
+      font-size: 0.9rem;
+      color: #93c5fd;
+      margin-bottom: 6px;
+    }
+
+    .mini-card p {
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .mini-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .header h1 {
+        font-size: 1.45rem;
+      }
+
+      .route-buttons {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Implementing HTTP Services in Node.js</h1>
+      <p>Ultra Premium Single File • QuickEdit Friendly • Mobile Ready • Assignment Perfect</p>
+    </div>
+
+    <div class="browser-shell">
+      <div class="browser-top">
+        <div class="dots">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+        </div>
+        <div class="url-bar" id="fakeUrl">http://localhost:3000/</div>
+      </div>
+
+      <div class="main-grid">
+        <!-- LEFT PANEL -->
+        <div class="panel">
+          <h2>HTTP Request Panel</h2>
+
+          <div class="controls">
+            <div>
+              <label for="method">Request Method</label>
+              <select id="method">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="route">Route / Endpoint</label>
+              <input type="text" id="route" value="/" placeholder="/api/users" />
+            </div>
+
+            <div>
+              <label>Quick Routes</label>
+              <div class="route-buttons">
+                <button class="route-btn" onclick="setRoute('/')">Home /</button>
+                <button class="route-btn" onclick="setRoute('/about')">About /about</button>
+                <button class="route-btn" onclick="setRoute('/api/user')">API /api/user</button>
+                <button class="route-btn" onclick="setRoute('/contact')">Contact /contact</button>
+                <button class="route-btn" onclick="setRoute('/api/register')">POST /api/register</button>
+                <button class="route-btn" onclick="setRoute('/wrong')">404 Route</button>
+              </div>
+            </div>
+
+            <div>
+              <label for="headers">Request Headers (JSON)</label>
+              <textarea id="headers">{
+  "Content-Type": "application/json",
+  "Accept": "application/json"
+}</textarea>
+            </div>
+
+            <div>
+              <label for="body">Request Body (JSON)</label>
+              <textarea id="body">{
+  "name": "Dhatchayani",
+  "role": "Student"
+}</textarea>
+            </div>
+
+            <button class="example-btn" onclick="loadExampleData()">Load Your JSON Example</button>
+            <button class="send-btn" onclick="sendRequest()">Send Request</button>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="panel">
+          <h2>HTTP Response Panel</h2>
+
+          <div class="response-box">
+            <div class="status-row" id="statusRow">
+              <span class="badge ok">Ready</span>
+            </div>
+
+            <div>
+              <label>Response Headers</label>
+              <div class="code-block" id="responseHeaders">Waiting for request...</div>
+            </div>
+
+            <div>
+              <label>Response Body</label>
+              <div class="code-block" id="responseBody">Click "Send Request" to simulate Node.js HTTP service.</div>
+            </div>
+
+            <div>
+              <label>Node.js Server Logic (Simulated)</label>
+              <div class="code-block" id="serverLogic">// Simulated server code will appear here...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:18px;">
+      <h2>Concept Summary</h2>
+      <div class="mini-grid">
+        <div class="mini-card">
+          <h3>Routing</h3>
+          <p>Server checks req.url and req.method to decide which response to send.</p>
+        </div>
+        <div class="mini-card">
+          <h3>Headers</h3>
+          <p>HTTP headers define content type, accepted response type, and metadata.</p>
+        </div>
+        <div class="mini-card">
+          <h3>JSON API</h3>
+          <p>Backend can return structured JSON data for APIs like /api/user or /api/register.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      Web Design Assignment • Implementing HTTP Services in Node.js • Single File Project
+    </div>
+  </div>
+
+  <script>
+    const methodEl = document.getElementById("method");
+    const routeEl = document.getElementById("route");
+    const headersEl = document.getElementById("headers");
+    const bodyEl = document.getElementById("body");
+    const responseHeadersEl = document.getElementById("responseHeaders");
+    const responseBodyEl = document.getElementById("responseBody");
+    const serverLogicEl = document.getElementById("serverLogic");
+    const statusRow = document.getElementById("statusRow");
+    const fakeUrl = document.getElementById("fakeUrl");
+
+    function setRoute(path) {
+      routeEl.value = path;
+
+      if (path === "/api/register") {
+        methodEl.value = "POST";
+      } else if (path === "/wrong") {
+        methodEl.value = "GET";
+      } else {
+        if (methodEl.value === "POST" && path !== "/api/register") {
+          methodEl.value = "GET";
+        }
+      }
+
+      updateUrl();
+    }
+
+    function updateUrl() {
+      fakeUrl.textContent = "http://localhost:3000" + routeEl.value;
+    }
+
+    routeEl.addEventListener("input", updateUrl);
+    methodEl.addEventListener("change", updateUrl);
+
+    function loadExampleData() {
+      bodyEl.value = `{
+  "name": "Dhatchayani",
+  "role": "Student"
+}`;
+      routeEl.value = "/api/register";
+      methodEl.value = "POST";
+      updateUrl();
+    }
+
+    function setStatus(type, text1, text2) {
+      let cls = "ok";
+      if (type === "created") cls = "created";
+      if (type === "bad") cls = "bad";
+      if (type === "warn") cls = "warn";
+
+      statusRow.innerHTML = `
+        <span class="badge ${cls}">${text1}</span>
+        <span class="badge warn">${text2}</span>
+      `;
+    }
+
+    function prettyJSON(obj) {
+      return JSON.stringify(obj, null, 2);
+    }
+
+    function sendRequest() {
+      const method = methodEl.value;
+      const route = routeEl.value.trim();
+
+      let requestHeaders;
+      let requestBody = null;
+
+      try {
+        requestHeaders = JSON.parse(headersEl.value || "{}");
+      } catch (e) {
+        setStatus("bad", "400 Bad Request", "Invalid Headers JSON");
+        responseHeadersEl.textContent = "Content-Type: application/json";
+        responseBodyEl.textContent = prettyJSON({
+          error: "Invalid JSON format in Request Headers"
+        });
+        serverLogicEl.textContent = "// Fix headers JSON before sending request.";
+        return;
+      }
+
+      try {
+        requestBody = bodyEl.value.trim() ? JSON.parse(bodyEl.value) : null;
+      } catch (e) {
+        setStatus("bad", "400 Bad Request", "Invalid Body JSON");
+        responseHeadersEl.textContent = "Content-Type: application/json";
+        responseBodyEl.textContent = prettyJSON({
+          error: "Invalid JSON format in Request Body"
+        });
+        serverLogicEl.textContent = "// Fix request body JSON before sending request.";
+        return;
+      }
+
+      updateUrl();
+
+      // HOME
+      if (route === "/" && method === "GET") {
+        setStatus("ok", "200 OK", "GET /");
+        responseHeadersEl.textContent = `Content-Type: text/html\nServer: Node.js\nStatus-Code: 200`;
+        responseBodyEl.textContent = `<h1>Welcome to Home Page</h1>\n<p>Node.js HTTP Service is running successfully.</p>`;
+        serverLogicEl.textContent = `const http = require('http');
+
+http.createServer((req, res) => {
+  if (req.url === '/' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end('<h1>Welcome to Home Page</h1>');
+  }
+});`;
+      }
+
+      // ABOUT
+      else if (route === "/about" && method === "GET") {
+        setStatus("ok", "200 OK", "GET /about");
+        responseHeadersEl.textContent = `Content-Type: text/html\nServer: Node.js\nStatus-Code: 200`;
+        responseBodyEl.textContent = `<h1>About Page</h1>\n<p>This project demonstrates implementing HTTP services in Node.js.</p>`;
+        serverLogicEl.textContent = `if (req.url === '/about' && req.method === 'GET') {
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end('<h1>About Page</h1>');
+}`;
+      }
+
+      // CONTACT
+      else if (route === "/contact" && method === "GET") {
+        setStatus("ok", "200 OK", "GET /contact");
+        responseHeadersEl.textContent = `Content-Type: text/html\nServer: Node.js\nStatus-Code: 200`;
+        responseBodyEl.textContent = `<h1>Contact Page</h1>\n<p>Contact endpoint served successfully.</p>`;
+        serverLogicEl.textContent = `if (req.url === '/contact' && req.method === 'GET') {
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end('<h1>Contact Page</h1>');
+}`;
+      }
+
+      // API USER
+      else if (route === "/api/user" && method === "GET") {
+        const data = {
+          id: 101,
+          name: "Dhatchayani",
+          role: "Student",
+          status: "active"
+        };
+
+        setStatus("ok", "200 OK", "GET /api/user");
+        responseHeadersEl.textContent = `Content-Type: application/json\nServer: Node.js\nStatus-Code: 200`;
+        responseBodyEl.textContent = prettyJSON(data);
+        serverLogicEl.textContent = `if (req.url === '/api/user' && req.method === 'GET') {
+  const user = {
+    id: 101,
+    name: 'Dhatchayani',
+    role: 'Student',
+    status: 'active'
+  };
+
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(user));
+}`;
+      }
+
+      // API REGISTER POST
+      else if (route === "/api/register" && method === "POST") {
+        const response = {
+          message: "User registered successfully",
+          receivedData: requestBody,
+          method: "POST",
+          route: "/api/register",
+          success: true
+        };
+
+        setStatus("created", "201 Created", "POST /api/register");
+        responseHeadersEl.textContent = `Content-Type: application/json\nServer: Node.js\nStatus-Code: 201`;
+        responseBodyEl.textContent = prettyJSON(response);
+        serverLogicEl.textContent = `if (req.url === '/api/register' && req.method === 'POST') {
+  let body = '';
+
+  req.on('data', chunk => {
+    body += chunk.toString();
+  });
+
+  req.on('end', () => {
+    const data = JSON.parse(body);
+
+    res.writeHead(201, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      message: 'User registered successfully',
+      receivedData: data
+    }));
+  });
+}`;
+      }
+
+      // METHOD NOT ALLOWED FOR REGISTER
+      else if (route === "/api/register" && method !== "POST") {
+        setStatus("bad", "405 Method Not Allowed", method + " /api/register");
+        responseHeadersEl.textContent = `Content-Type: application/json\nServer: Node.js\nStatus-Code: 405`;
+        responseBodyEl.textContent = prettyJSON({
+          error: "Method Not Allowed",
+          allowedMethod: "POST"
+        });
+        serverLogicEl.textContent = `if (req.url === '/api/register' && req.method !== 'POST') {
+  res.writeHead(405, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+}`;
+      }
+
+      // NOT FOUND
+      else {
+        setStatus("bad", "404 Not Found", method + " " + route);
+        responseHeadersEl.textContent = `Content-Type: text/html\nServer: Node.js\nStatus-Code: 404`;
+        responseBodyEl.textContent = `<h1>404 Not Found</h1>\n<p>The requested route does not exist.</p>`;
+        serverLogicEl.textContent = `else {
+  res.writeHead(404, { 'Content-Type': 'text/html' });
+  res.end('<h1>404 Not Found</h1>');
+}`;
+      }
+    }
+
+    // Initial setup
+    updateUrl();
+    sendRequest();
+  </script>
+</body>
+</html>
